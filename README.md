@@ -1,250 +1,96 @@
-# 🌾 Nvil - Stardew Valley Edition
+# Your Neovim config
 
-> Your cozy coding village awaits...
+Built on [lazy.nvim](https://github.com/folke/lazy.nvim). Structure:
 
-<div align="center">
+```
+init.lua               entry point — just requires everything else
+lua/config/
+  lazy.lua             bootstraps the plugin manager
+  options.lua           <- "UI settings" — edit this to change editor behavior
+  keymaps.lua           <- "keybind settings" — edit this to change core keybinds
+  autocmds.lua          small automations (trim whitespace, restore cursor, etc.)
+lua/plugins/
+  colorscheme.lua       tokyonight / catppuccin / rose-pine, <leader>uc to switch live
+  explorer.lua          neo-tree (left sidebar file explorer)
+  bufferline.lua        VS Code-style tab row
+  statusline.lua        lualine
+  telescope.lua         fuzzy finder for files/grep/buffers/keymaps
+  treesitter.lua        syntax highlighting
+  git.lua               gitsigns (inline) + neogit (full git UI)
+  lsp.lua               Mason + language servers (autocomplete/errors/go-to-def)
+  completion.lua        the autocomplete popup itself (nvim-cmp)
+  formatting.lua        auto-format on save (conform.nvim)
+  ai.lua                Avante — the Cursor-style AI sidebar, wired to local Gemma 4
+  image.lua             inline image rendering (Kitty graphics protocol)
+  browser.lua           real markdown preview + "open in actual browser" keymaps
+  which-key.lua         live keybind reference popup
+```
 
-![Nvil Logo](https://img.shields.io/badge/Nvil-Stardew_Valley_Edition-FFB7C5?style=for-the-badge&logo=neovim)
-![Neovim](https://img.shields.io/badge/Neovim-0.9+-5694A5?style=for-the-badge&logo=neovim)
-![Lua](https://img.shields.io/badge/Lua-5.1-2C2D72?style=for-the-badge&logo=lua)
-![License](https://img.shields.io/github/license/Bencode12/Nvil?style=for-the-badge)
+## One-time setup
 
-</div>
+**1. Install the Neovim plugins** — just open `nvim`, lazy.nvim bootstraps
+itself and installs everything on first launch.
 
----
-
-## 🎨 Features
-
-### 🏘️ Stardew Valley Themed Dashboard
-- **Seasonal Themes**: Dynamic dashboard that changes with the seasons
-- **Farming Level System**: Track your coding progress like farming levels
-- **Cozy ASCII Art**: Beautiful village-themed startup screen
-- **Daily Messages**: Inspirational quotes from Pelican Town
-
-### ⚡ Quick Start
+**2. Set up the local AI (Gemma 4 via Ollama)**
 
 ```bash
-# Clone the repository
-git clone https://github.com/Bencode12/Nvil.git ~/.config/nvim
+# install Ollama (Arch)
+sudo pacman -S ollama
+sudo systemctl enable --now ollama
 
-# Start Neovim
-nvim
+# pull the model sized for your GTX 1060 (6GB VRAM)
+ollama pull gemma4:e4b
 ```
+If you upgrade your GPU later, swap `model = "gemma4:e4b"` for `gemma4:26b`
+in `lua/plugins/ai.lua` — stronger reasoning, needs ~16GB VRAM.
 
-### 🎮 Key Bindings
-
-| Key | Description |
-|-----|-------------|
-| `<Space>f` | Find Files |
-| `<Space>r` | Recent Files |
-| `<Space>s` | Settings |
-| `<Space>pi` | Plugin Manager |
-| `<Space>q` | Quit |
-| `<Space>ff` | 🌾 Find File (Telescope) |
-| `<Space>fg` | 🔍 Grep |
-| `<Space>fb` | 📋 Buffers |
-| `<Space>gs` | 🌾 Git Status |
-| `<Space>xp` | Check Farming Level |
-
-### 🌸 Seasonal Themes
-
-Nvil automatically detects the current season and applies themed colors:
-
-- **🌷 Spring**: Cherry blossom pink & fresh green
-- **☀️ Summer**: Sun gold & watermelon red
-- **🍂 Fall**: Pumpkin orange & wood brown
-- **❄️ Winter**: Light cyan & powder blue
-
-###  Farming Level System
-
-Your coding journey is tracked like a Stardew Valley farming skill:
-- Gain XP by completing coding tasks
-- Level up from 1 to 100
-- Track progress with `<Space>xp`
-
-```lua
--- Check your current level
-:lua print("Level: " .. math.floor(_G.nvim_settings.quest.xp / 500) + 1)
-```
-
-## 📦 Plugin Management
-
-Plugins are managed with [lazy.nvim](https://github.com/folke/lazy.nvim).
-
-### Install Plugins
-
-```vim
-:Lazy
-```
-
-### Update Plugins
-
-```vim
-:Lazy update
-```
-
-## 🛠️ Configuration
-
-### Basic Setup
-
-All configuration files are located in `~/.config/nvim/lua/`:
-
-```
-lua/
-├── config/
-│   ├── lazy.lua          # Plugin manager bootstrap
-│   ├── keymaps.lua       # Key bindings
-│   └── options.lua       # Neovim options
-└── plugins/
-    ├── settings.lua      # Settings UI
-    └── stardew-dashboard.lua  # Themed dashboard
-```
-
-### Customization
-
-Edit `lua/config/options.lua` to customize:
-
-```lua
-return {
-  stardew = {
-    enabled = true,
-    season = "auto", -- or: spring, summer, fall, winter
-    logo = "village", -- or: farm, town, community
-    show_farming_level = true,
-  },
-}
-```
-
-## 🎨 Dashboard Themes
-
-### Available Logos
-
-- `village` - Classic village scene
-- `farm` - Your personal farm
-- `town` - Town center
-- `community` - Community Center
-
-### Color Palettes
-
-Each season has unique colors inspired by Stardew Valley:
-
-```lua
--- Spring colors
-primary = "#FFB7C5"    -- Cherry blossom
-secondary = "#90EE90"  -- Fresh green
-accent = "#FFD700"     -- Sun yellow
-```
-
-## 🌟 Requirements
-
-- **Neovim** 0.9+
-- **Git** (for plugin management)
-- **Nerd Font** (for icons)
-
-### Recommended Fonts
-
-- JetBrainsMono Nerd Font
-- FiraCode Nerd Font
-- Hack Nerd Font
-
-## 🚀 Installation
-
-### Linux/macOS
-
+**3. System dependencies for image rendering**
 ```bash
-# Backup old config
-mv ~/.config/nvim ~/.config/nvim.backup
-
-# Clone Nvil
-git clone https://github.com/Bencode12/Nvil.git ~/.config/nvim
-
-# Start Neovim (plugins will auto-install)
-nvim
+sudo pacman -S imagemagick
 ```
+Image rendering needs a terminal that supports the Kitty graphics protocol.
+Ghostty (already in your stack) supports it. If images don't render in
+Neovide, that's a known Neovide limitation, not a config bug — test in
+Ghostty to confirm.
 
-### Windows (PowerShell)
+**4. Formatters/LSPs** — `:Mason` opens a UI to install/remove language
+servers, formatters, and linters. The ones listed in `lsp.lua` install
+automatically on first launch; add more there anytime.
 
-```powershell
-# Backup old config
-Move-Item $env:LOCALAPPDATA\nvim $env:LOCALAPPDATA\nvim.backup
+## Keymap cheatsheet (leader = space)
 
-# Clone Nvil
-git clone https://github.com/Bencode12/Nvil.git $env:LOCALAPPDATA\nvim
+Hold `<space>` for ~400ms in Neovim and a live popup shows all of these —
+this list will drift out of date, that popup won't.
 
-# Start Neovim
-nvim
-```
+| Key | Action |
+|---|---|
+| `<leader>e` | Toggle file explorer |
+| `<leader>ff` / `fg` / `fb` | Find files / grep / buffers |
+| `<S-l>` / `<S-h>` | Next / previous buffer (tab) |
+| `<leader>bd` | Close current buffer |
+| `<leader>gg` | Open full git UI (Neogit) |
+| `]h` / `[h` | Next / previous git change |
+| `<leader>gp` | Preview git hunk |
+| `<leader>aa` | Ask the AI sidebar |
+| `<leader>ae` | Ask AI to edit current selection |
+| `<leader>at` | Toggle AI sidebar |
+| `gd` / `gr` / `K` | Go to definition / references / hover docs |
+| `<leader>rn` | Rename symbol (LSP) |
+| `<leader>ca` | Code action |
+| `<leader>mp` | Toggle markdown preview (real browser) |
+| `<leader>bl` | Open localhost:PORT in browser |
+| `gx` | Open URL under cursor in browser |
+| `<leader>uc` | Live-switch colorscheme |
 
-## 🎮 First Steps
+## What's real vs. adjusted from your original ask
 
-1. **Start Neovim** - See the beautiful Stardew dashboard
-2. **Press `f`** - Find your first file
-3. **Press `s`** - Explore settings
-4. **Press `i`** - Browse and install plugins
-5. **Press `<Space>xp`** - Check your farming level!
-
-## 🏆 Quests & Achievements
-
-Track your coding journey with the farming level system:
-
-| Level | Title |
-|-------|-------|
-| 1-9 | Greenhorn |
-| 10-19 | Cowpoke |
-| 20-39 | Farmer |
-| 40-59 | Artisan |
-| 60-79 | Tiller |
-| 80-99 | Master Farmer |
-| 100 | Legendary Farmer |
-
-## 🐛 Troubleshooting
-
-### Dashboard not showing?
-
-```vim
-:lua require("snacks.dashboard").open()
-```
-
-### Colors look wrong?
-
-```vim
-:colorscheme tokyonight
-```
-
-### Plugins not loading?
-
-```vim
-:Lazy sync
-:qa
-```
-
-## 📚 Resources
-
-- [Neovim Documentation](https://neovim.io/doc/)
-- [LazyVim](https://www.lazyvim.org/)
-- [Stardew Valley Wiki](https://stardewvalleywiki.com/Stardew_Valley_Wiki)
-
-## 🤝 Contributing
-
-Contributions welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **ConcernedApe** for creating Stardew Valley
-- **LazyVim** team for the excellent framework
-- **Folke** for lazy.nvim and snacks.nvim
-- All the villagers of Pelican Town (you know who you are!)
-
----
-
-<div align="center">
-
-### 🌾 Made with ❤️ in Pelican Town
-
-*"Plant code seeds, harvest success"*
-
-</div>
+- **Browser rendering inside Neovim** isn't a thing that exists — no plugin
+  embeds an actual web engine. What's here instead: real markdown preview in
+  your actual browser, and one-keystroke opening of any URL (including
+  localhost) in your system browser.
+- **A GUI settings page** isn't standard Neovim practice — configs are Lua
+  files by design. `options.lua` + `keymaps.lua` are structured to be easy to
+  scan and edit directly, and which-key gives you a live, always-accurate
+  popup of every keybind instead of a static reference page.
+- **Everything else** — explorer, tabs, git, AI sidebar, images, syntax
+  highlighting — is a real, working plugin as configured.
