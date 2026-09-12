@@ -1,14 +1,8 @@
+-- Neo-tree extra is enabled in lazyvim.json. These opts merge with LazyVim's.
+
 return {
   "nvim-neo-tree/neo-tree.nvim",
-  branch = "v3.x",
-  dependencies = {
-    "nvim-lua/plenary.nvim",
-    "nvim-tree/nvim-web-devicons",
-    "MunifTanjim/nui.nvim",
-  },
-  cmd = "Neotree",
   keys = {
-    { "<leader>e", "<cmd>Neotree toggle<CR>", desc = "Toggle file explorer" },
     { "<leader>o", "<cmd>Neotree focus<CR>", desc = "Focus file explorer" },
   },
   opts = {
@@ -18,33 +12,17 @@ return {
       position = "left",
       width = 32,
       mappings = {
-        ["<space>"] = "none", -- free up space for leader since it's used globally
+        ["<space>"] = "none",
       },
     },
     filesystem = {
       follow_current_file = { enabled = true },
       hijack_netrw_behavior = "open_current",
-      use_libuv_file_watcher = true, -- auto-refresh on external file changes
+      use_libuv_file_watcher = true,
       filtered_items = {
         visible = false,
         hide_dotfiles = false,
         hide_gitignored = false,
-      },
-    },
-    default_component_configs = {
-      indent = { with_expanders = true },
-      git_status = {
-        symbols = {
-          added = "✚",
-          modified = "",
-          deleted = "✖",
-          renamed = "󰁕",
-          untracked = "",
-          ignored = "",
-          unstaged = "󰄱",
-          staged = "",
-          conflict = "",
-        },
       },
     },
   },

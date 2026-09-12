@@ -54,17 +54,29 @@ return {
       auto_apply_diff_after_generation = false, -- review before it touches files
       support_paste_from_clipboard = true,
       minimize_diff = true,
+      auto_focus_sidebar = false, -- keep the file focused when the chat opens
     },
     windows = {
       position = "right",
       width = 34, -- percent of screen width
-      sidebar_header = { align = "center", rounded = true },
+      sidebar_header = {
+        align = "center",
+        rounded = true,
+        enabled = true,
+        include_model = true, -- show current model in the header
+      },
     },
     mappings = {
       ask = "<leader>aa",
       edit = "<leader>ae",
       refresh = "<leader>ar",
       toggle = { default = "<leader>at" },
+      select_model = "<leader>a?",
+      select_history = "<leader>ah",
+      submit = {
+        normal = "<CR>",
+        insert = "<D-cr>", -- Cmd+Enter on macOS
+      },
     },
   },
 }

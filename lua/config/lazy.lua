@@ -1,6 +1,4 @@
--- Bootstraps lazy.nvim (the plugin manager) and points it at lua/plugins/,
--- where every plugin gets its own file. Add a new plugin by dropping a new
--- file in lua/plugins/ — you never need to touch this file again.
+-- Bootstraps lazy.nvim, then loads LazyVim plus lua/plugins/*.lua.
 
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
@@ -20,19 +18,24 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
   spec = {
+    { "LazyVim/LazyVim", import = "lazyvim.plugins" },
     { import = "plugins" },
   },
   defaults = {
     lazy = false,
-    version = false, -- always use the latest git commit
+    version = false,
   },
-  install = { colorscheme = { "tokyonight" } },
-  checker = { enabled = true, notify = false }, -- silently check for plugin updates
+  install = { colorscheme = { "tokyonight", "habamax" } },
+  checker = { enabled = true, notify = false },
   change_detection = { notify = false },
   performance = {
     rtp = {
       disabled_plugins = {
-        "gzip", "tarPlugin", "tohtml", "tutor", "zipPlugin", "netrwPlugin",
+        "gzip",
+        "tarPlugin",
+        "tohtml",
+        "tutor",
+        "zipPlugin",
       },
     },
   },
