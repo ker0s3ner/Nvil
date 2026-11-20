@@ -14,20 +14,10 @@ local hl = {
   Heatmap3 = "FbHeatmap3", Heatmap4 = "FbHeatmap4",
 }
 
+-- Colours come from the active colour pack (freebuff/theme.lua), so the
+-- settings window is red by default instead of tokyonight blue/green.
 local function setup_highlights()
-  local fg = api.nvim_get_hl(0, { name = "Normal" }).fg or "#c0caf5"
-  api.nvim_set_hl(0, hl.SidebarActive, { bg = "#24283b", fg = "#7aa2f7", bold = true })
-  api.nvim_set_hl(0, hl.SidebarFg, { bg = "#13141c", fg = "#787c99" })
-  api.nvim_set_hl(0, hl.SectionTitle, { fg = "#565f89", bold = true })
-  api.nvim_set_hl(0, hl.ToggleOn, { fg = "#9ece6a", bold = true })
-  api.nvim_set_hl(0, hl.ToggleOff, { fg = "#565f89" })
-  api.nvim_set_hl(0, hl.SettingDesc, { fg = "#565f89" })
-  api.nvim_set_hl(0, hl.HeaderBg, { fg = fg, bold = true })
-  api.nvim_set_hl(0, hl.Heatmap0, { fg = "#3b4261" })
-  api.nvim_set_hl(0, hl.Heatmap1, { fg = "#1a5c2e" })
-  api.nvim_set_hl(0, hl.Heatmap2, { fg = "#2d8a4e" })
-  api.nvim_set_hl(0, hl.Heatmap3, { fg = "#4ade80" })
-  api.nvim_set_hl(0, hl.Heatmap4, { fg = "#86efac" })
+  require("freebuff.theme").apply()
 end
 
 local state = {
@@ -345,6 +335,8 @@ pages[#pages + 1] = {
       { "display", "Terminal", "<Space>ft floating terminal" },
       { "display", "Git", "<Space>gn Neogit" },
       { "display", "Sessions", "<Space>qs restore, <Space>ql last" },
+      { "display", "Tools", "<Space>; launcher · L leetcode · M music · J jupyter · R render · N network · O mind map" },
+      { "display", "Settings", "<Space>sp packs · <Space>sT tools" },
       { "section", "Shortcuts" },
       { "display", "<Space> fi", "Find Item (files & folders)" },
       { "display", "<Space> sg", "Search text" },
@@ -359,6 +351,113 @@ pages[#pages + 1] = {
     }
   end,
 }
+
+-- ── Packs page ──────────────────────────────────────────────────────────────
+
+local function pack_options(map, order)
+  local o = {}
+  for _, k in ipairs(order) do
+    o[#o + 1] = { label = map[k].label .. "  —  " .. (map[k].desc or ""), value = k }
+  end
+  return o
+end
+
+local function installed_kernels()
+  local found = {}
+  local dirs = {
+    vim.fn.expand("~/Library/Jupyter/kernels"), vim.fn.expand("~/.local/share/jupyter/kernels"),
+    "/usr/local/share/jupyter/kernels", "/opt/homebrew/share/jupyter/kernels",
+  }
+  for _, d in ipairs(dirs) do
+    if vim.fn.isdirectory(d) == 1 then
+      for _, name in ipairs(vim.fn.readdir(d)) do found[name:lower()] = true end
+    end
+  end
+  return found
+end
+
+table.insert(pages, 2, {
+  id = "packs", icon = "󰏗", label = "Packs",
+  build = function()
+    local Packs = require("freebuff.settings.packs")
+    local Theme = require("freebuff.theme")
+    local color_opts = {}
+    for _, k in ipairs(Theme.order) do
+      color_opts[#color_opts + 1] = { label = Theme.packs[k].label, value = k }
+    end
+    local items = {
+      { "section", "Colors" },
+      { "dropdown", "packs.color", "Color Pack", "Accent for dashboard, AI chat, settings and tabs", color_opts },
+
+      { "section", "Fonts" },
+      { "dropdown", "packs.font", "Font Pack", "Applies to GUIs (Neovide). Terminals use the terminal's own font",
+        pack_options(Packs.fonts, Packs.fonts_order) },
+    }
+    local font = Packs.fonts[Data.get_value("packs.font") or "jetbrains"]
+    if font then
+      items[#items + 1] = { "display", "Terminal font", "Ghostty: font-family = " .. font.gui }
+      items[#items + 1] = { "button", nil, "Install " .. font.label .. " (brew)", "brew install --cask " .. font.cask,
+        function() Packs.run_in_terminal("brew install --cask " .. font.cask) end }
+    end
+
+    vim.list_extend(items, {
+      { "section", "Keybinds" },
+      { "dropdown", "packs.keybinds", "Keybind Pack", "Extra keymaps layered on LazyVim", pack_options(Packs.keybinds, Packs.keybinds_order) },
+      { "section", "Editor" },
+      { "dropdown", "packs.editor", "Editor Pack", "Indent, wrap, ruler, scrolloff presets", pack_options(Packs.editor, Packs.editor_order) },
+
+      { "section", "Music (Strudel)" },
+      { "dropdown", "packs.music", "Music Pack", "Starter track for new Strudel files", pack_options(Packs.music, Packs.music_order) },
+      { "button", nil, "+ New track from pack", "Creates ~/strudel/<pack>-<time>.str and opens it",
+        function() require("tools").strudel_new() end },
+
+      { "section", "Jupyter kernels" },
+      { "dropdown", "packs.kernel", "Default Kernel", "Used by <leader>Ji", pack_options(Packs.kernels, Packs.kernels_order) },
+    })
+    local have = installed_kernels()
+    for _, k in ipairs(Packs.kernels_order) do
+      local kp = Packs.kernels[k]
+      local ok = have[k] or (k == "javascript" and (have.tslab or have.jslab)) or false
+      items[#items + 1] = { "button", nil, (ok and "● " or "○ ") .. kp.label .. (ok and "  installed" or "  install"),
+        ok and "Kernel found" or "Runs in a terminal split", function()
+          if not ok then Packs.run_in_terminal(Packs.kernel_install_cmd(k)) end
+        end }
+    end
+    items[#items + 1] = { "button", nil, "Set up Python env for Jupyter", "Creates a venv with pynvim, jupyter_client, jupytext, ipykernel…",
+      function() Packs.run_in_terminal(Packs.python_env_cmd()) end }
+
+    vim.list_extend(items, {
+      { "section", "Network" },
+      { "dropdown", "packs.network", "Network Pack", "Cisco / device presets", pack_options(Packs.network, Packs.network_order) },
+      { "section", "LeetCode" },
+      { "dropdown", "packs.leetcode_lang", "Language", "Default language (restart to apply)",
+        (function() local o = {} for _, l in ipairs(Packs.leetcode_langs) do o[#o + 1] = { label = l, value = l } end return o end)() },
+    })
+    return items
+  end,
+})
+
+-- ── Tools page ──────────────────────────────────────────────────────────────
+
+table.insert(pages, 3, {
+  id = "tools", icon = "󰠱", label = "Tools",
+  build = function()
+    return {
+      { "section", "Enabled tools (restart after turning one off)" },
+      { "toggle", "tools.leetcode", "LeetCode", "<leader>L — practice problems inside Neovim" },
+      { "toggle", "tools.strudel", "Strudel", "<leader>M — live-coded music (needs node + Chromium via Playwright)" },
+      { "toggle", "tools.jupyter", "Jupyter", "<leader>J — notebooks via jupytext + Molten kernels" },
+      { "toggle", "tools.latex_live", "Live LaTeX / Typst", "<leader>R — debounced auto-compile to PDF" },
+      { "toggle", "tools.manim_live", "Live Manim", "Re-render the scene on save" },
+      { "toggle", "tools.mindmap", "Mind map / graph", "<leader>O — Obsidian-style graph + outline" },
+      { "toggle", "tools.network", "Network (Cisco)", "<leader>N — console, ssh, subnet calc, IOS syntax" },
+      { "section", "Live render" },
+      { "slider", "tools.autocompile_delay", "Debounce", "Wait this long after you stop typing", 200, 3000, 100, "%dms" },
+      { "section", "Launcher" },
+      { "button", nil, "Open tool launcher", "Same as <leader>;", function() require("tools").launcher() end },
+    }
+  end,
+})
 
 -- ── Rendering helpers ───────────────────────────────────────────────────────
 
@@ -390,15 +489,17 @@ function render_content()
   for _, raw in ipairs(items) do
     local tp, key, name, desc = parse_item(raw)
 
+    -- header / section / display / heatmap carry their text in raw[2] (key),
+    -- not raw[3]; reading `name` here left every section title blank.
     if tp == "header" then
       lines[#lines + 1] = ""; line_hls[#lines] = {}
-      lines[#lines + 1] = "  " .. (name or ""); line_hls[#lines] = {}
+      lines[#lines + 1] = "  " .. (key or ""); line_hls[#lines] = {}
       lines[#lines + 1] = ""; line_hls[#lines] = {}
       row = row + 3
 
     elseif tp == "section" then
       lines[#lines + 1] = ""; line_hls[#lines] = {}
-      lines[#lines + 1] = "  " .. string.upper(name or ""); line_hls[#lines] = {}
+      lines[#lines + 1] = "  " .. string.upper(key or ""); line_hls[#lines] = {}
       lines[#lines + 1] = ""; line_hls[#lines] = {}
       row = row + 3
 
@@ -458,15 +559,15 @@ function render_content()
       lines[#lines + 1] = ""; row = row + 1
 
     elseif tp == "display" then
-      local d = name or ""
-      if desc and #desc > 0 then d = d .. "  —  " .. desc end
+      local d = key or ""
+      if name and #name > 0 then d = d .. "  —  " .. name end
       lines[#lines + 1] = "  " .. d
       row = row + 1
       lines[#lines + 1] = ""; row = row + 1
 
     elseif tp == "heatmap" then
       -- Add heatmap legend line
-      local total = name or 0
+      local total = key or 0
       lines[#lines + 1] = "  " .. total .. " contributions in the last year"
       row = row + 1
       lines[#lines + 1] = ""
@@ -525,7 +626,7 @@ function render_content()
   api.nvim_set_option_value("modifiable", false, { buf = state.bufnr })
 
   -- Apply extmarks
-  local erow = 0
+  local erow = 2 -- buffer rows 0-1 are the "← Back" header + blank line
   local lc = #lines
   for _, raw in ipairs(items) do
     local tp, key, name = parse_item(raw)
@@ -533,8 +634,9 @@ function render_content()
 
     if tp == "header" then erow = erow + 3
     elseif tp == "section" then
-      pcall(api.nvim_buf_set_extmark, state.bufnr, NS, erow, 2, {
-        end_col = 2 + #(name or ""), hl_group = hl.SectionTitle })
+      -- Section text sits on the 2nd of its 3 lines (blank, TITLE, blank)
+      pcall(api.nvim_buf_set_extmark, state.bufnr, NS, erow + 1, 2, {
+        end_col = 2 + #(key or ""), hl_group = hl.SectionTitle })
       erow = erow + 3
     elseif tp == "toggle" then
       local on = Data.get_value(key) == true
@@ -583,7 +685,7 @@ function render_content()
     elseif tp == "heatmap" then
       erow = erow + 2  -- header + blank
       local hm_count = heatmap_lines_cache and #heatmap_lines_cache or 0
-      erow = erow + hm_count + 3  -- heatmap lines + legend + blank
+      erow = erow + hm_count + 2  -- heatmap lines + legend + blank
     elseif tp == "prompt_item" then
       erow = erow + 1
       if raw[5] and #raw[5] > 0 then erow = erow + 1 end
@@ -605,7 +707,7 @@ function render_content()
   if heatmap_lines_cache and state.current_page == "usage" then
     -- Find where heatmap lines start (after the header + overview + section header)
     local hm_start = 0
-    local line_idx = 0
+    local line_idx = 2
     for _, raw in ipairs(items) do
       local tp = raw[1]
       if tp == "heatmap" then
@@ -820,20 +922,39 @@ function M._apply_setting(key, value)
   local sec, sub = parts[1], parts[2]
   if sec == "appearance" then
     if sub == "colorscheme" then pcall(vim.cmd.colorscheme, value)
-    elseif sub == "transparent" then vim.notify("Restart to apply", vim.log.levels.INFO)
+    elseif sub == "transparent" then
+      require("freebuff.theme").apply()
+      if value then
+        local p = require("freebuff.theme").current()
+        vim.api.nvim_set_hl(0, "Normal", { fg = p.fg, bg = "none" })
+        vim.api.nvim_set_hl(0, "NormalFloat", { fg = p.fg, bg = "none" })
+      end
     elseif sub == "font_size" or sub == "font_family" then
-      local ff = Data.get_value("appearance.font_family") or ""
-      local fs = Data.get_value("appearance.font_size") or 14
-      local font = (ff ~= "" and ff or "JetBrainsMono Nerd Font") .. ":h" .. fs
-      pcall(function() vim.o.guifont = font end)
-    elseif sub == "show_line_numbers" then vim.opt.number = value
-    elseif sub == "show_relative_line_numbers" then vim.opt.relativenumber = value
+      require("freebuff.settings.packs").apply_font(Data.get_value("packs.font"))
+    elseif sub == "show_line_numbers" or sub == "show_relative_line_numbers" then
+      local show = Data.get_value("appearance.show_line_numbers")
+      local relative = Data.get_value("appearance.show_relative_line_numbers")
+      for _, win in ipairs(vim.api.nvim_list_wins()) do
+        if vim.api.nvim_win_is_valid(win) then
+          vim.wo[win].number = show
+          vim.wo[win].relativenumber = show and relative
+        end
+      end
     elseif sub == "show_sign_column" then vim.opt.signcolumn = value and "yes" or "no"
     elseif sub == "cursorline" then vim.opt.cursorline = value
     elseif sub == "cursorcolumn" then vim.opt.cursorcolumn = value
     elseif sub == "termguicolors" then vim.opt.termguicolors = value
     elseif sub == "winbar" then vim.opt.winbar = value and "%f" or ""
     elseif sub == "show_tabline" then vim.opt.showtabline = value and 2 or 0
+    end
+  elseif sec == "packs" then
+    local P = require("freebuff.settings.packs")
+    if sub == "color" then P.apply_color()
+    elseif sub == "font" then P.apply_font(value)
+    elseif sub == "keybinds" then P.apply_keybinds(value)
+    elseif sub == "editor" then P.apply_editor(value)
+    elseif sub == "kernel" or sub == "music" or sub == "network" or sub == "leetcode_lang" then
+      vim.notify(("Pack '%s' set to %s"):format(sub, value), vim.log.levels.INFO, { title = "Packs" })
     end
   elseif sec == "general" then
     if sub == "mouse" then vim.opt.mouse = value
@@ -934,7 +1055,7 @@ local function create_windows()
     end, noremap = true, silent = true })
 
   -- ── Page-jump shortcuts ──
-  local shortcuts = { "1", "2", "3", "4", "5", "6", "7" }
+  local shortcuts = { "1", "2", "3", "4", "5", "6", "7", "8", "9" }
   for i, key in ipairs(shortcuts) do
     if pages[i] then
       local pid = pages[i].id

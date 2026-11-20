@@ -19,6 +19,9 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
   spec = {
     { "LazyVim/LazyVim", import = "lazyvim.plugins" },
+    -- Language extras: markdown (render-markdown + preview + marksman wikilinks), python (Jupyter/Manim)
+    { import = "lazyvim.plugins.extras.lang.markdown" },
+    { import = "lazyvim.plugins.extras.lang.python" },
     { import = "plugins" },
   },
   defaults = {

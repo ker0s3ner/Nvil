@@ -26,8 +26,16 @@ opt.timeoutlen = 400
 opt.list = true
 opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
 
--- Keep markdown/code punctuation visible (LazyVim defaults conceallevel to 2).
+-- Markdown rendering (render-markdown) needs conceal; code stays literal.
 opt.conceallevel = 0
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "markdown", "quarto" },
+  callback = function() vim.opt_local.conceallevel = 2 end,
+})
+
+-- Private Python env for Jupyter/Molten (created by Settings -> Packs -> "Set up Python env").
+local venv_py = vim.fn.stdpath("data") .. "/nvil-venv/bin/python"
+if vim.uv.fs_stat(venv_py) then g.python3_host_prog = venv_py end
 
 -- Always show the buffer tab line, even with a single file.
 opt.showtabline = 2

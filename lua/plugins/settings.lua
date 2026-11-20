@@ -3,6 +3,34 @@
 
 local api = vim.api
 
+local function path_input(prompt, default)
+  return vim.fn.input(prompt, default or "", "file")
+end
+
+local function open_folder()
+  local path = path_input("Open folder: ", vim.fn.getcwd() .. "/")
+  if path == "" then return end
+  if vim.fn.isdirectory(path) == 0 then
+    vim.notify("Folder does not exist: " .. path, vim.log.levels.ERROR)
+    return
+  end
+  vim.cmd.cd(vim.fn.fnamemodify(path, ":p"))
+  require("neo-tree.command").execute({ action = "focus", source = "filesystem" })
+end
+
+local function new_folder()
+  local path = path_input("New folder: ", vim.fn.getcwd() .. "/")
+  if path == "" then return end
+  vim.fn.mkdir(path, "p")
+  vim.cmd.cd(vim.fn.fnamemodify(path, ":p"))
+  require("neo-tree.command").execute({ action = "focus", source = "filesystem" })
+end
+
+local function new_file()
+  local path = path_input("New file: ", vim.fn.getcwd() .. "/")
+  if path ~= "" then vim.cmd.edit(vim.fn.fnamemodify(path, ":p")) end
+end
+
 -- Custom dashboard picker: shows files AND directories, lets you filter.
 -- Selecting a directory sets the explorer root; selecting a file opens it.
 local function find_item()
@@ -67,6 +95,8 @@ return {
       { "<leader>sb", function() require("freebuff.settings.ui").open("browser") end, desc = "Settings: Browser" },
       { "<leader>sG", function() require("freebuff.settings.ui").open("general") end, desc = "Settings: General" },
       { "<leader>sd", function() require("freebuff.settings.ui").open("docs") end, desc = "Settings: Docs" },
+      { "<leader>sp", function() require("freebuff.settings.ui").open("packs") end, desc = "Settings: Packs" },
+      { "<leader>sT", function() require("freebuff.settings.ui").open("tools") end, desc = "Settings: Tools" },
       { "<leader>fi", find_item, desc = "Find Item (files & folders)" },
     },
     init = function()
@@ -74,7 +104,7 @@ return {
         local page = opts.args ~= "" and opts.args or nil
         require("freebuff.settings.ui").open(page)
       end, { nargs = "?", complete = function()
-        return { "appearance", "usage", "ai", "git", "browser", "general", "docs" }
+        return { "appearance", "packs", "tools", "usage", "ai", "git", "browser", "general", "docs" }
       end })
     end,
   },
@@ -87,29 +117,33 @@ return {
       opts.dashboard = opts.dashboard or {}
       opts.dashboard.preset = opts.dashboard.preset or {}
       opts.dashboard.preset.keys = {
-        { icon = " ", key = "f", desc = "Find Item", action = function() find_item() end },
-        { icon = " ", key = "g", desc = "Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
-        { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
-        { icon = " ", key = "s", desc = "Restore Session", section = "session" },
-        { icon = " ", key = "c", desc = "Settings", action = ":lua require('freebuff.settings.ui').open()" },
-        { icon = "󰒲 ", key = "l", desc = "Lazy", action = ":Lazy" },
+        { icon = "", key = "o", desc = "Open folder", action = open_folder },
+        { icon = "", key = "d", desc = "New folder", action = new_folder },
+        { icon = "", key = "f", desc = "New file", action = new_file },
+        { icon = "󰆦", key = "l", desc = "LeetCode", action = ":Leet" },
+        { icon = "󰎈", key = "m", desc = "Music (Strudel)", action = function() require("tools").strudel_new() end },
+        { icon = "", key = "t", desc = "Tools (render · notes · network · jupyter)", action = function() require("tools").launcher() end },
+        { icon = "", key = "s", desc = "Settings & packs", action = ":lua require('freebuff.settings.ui').open()" },
         { icon = " ", key = "q", desc = "Quit", action = ":qa" },
+      }
+      opts.dashboard.preset.header = [[
+  ██████╗  ██████╗ ██╗   ██╗██╗███╗   ███╗
+  ██╔══██╗██╔═══██╗██║   ██║██║████╗ ████║
+  ██║  ██║██║   ██║██║   ██║██║██╔████╔██║
+  ██║  ██║██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║
+  ██████╔╝╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║
+  ╚═════╝  ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝
+]]
+      opts.dashboard.sections = {
+        { section = "header" },
+        { section = "keys", gap = 1, padding = 1 },
+        { section = "startup" },
       }
       return opts
     end,
   },
 
-  -- ── Model dropdown in Avante input area ─────────────────────────────
-  {
-    "yetone/avante.nvim",
-    opts = function(_, opts)
-      local existing_post = opts.sidebar_post_render
-      opts.sidebar_post_render = function(sidebar)
-        if existing_post then existing_post(sidebar) end
-        pcall(function() require("freebuff.settings.avante_model_dropdown").attach(sidebar) end)
-      end
-    end,
-  },
+  -- (The Avante model picker now lives in plugins/avante-ui.lua.)
 
   -- ── Activity tracking on startup ───────────────────────────────────
   {
@@ -117,6 +151,11 @@ return {
     name = "freebuff-activity",
     event = "VeryLazy",
     config = function()
+      -- Re-apply every saved setting/pack (font, editor pack, keybind pack,
+      -- colours, custom keybinds). Before this, settings only took effect when
+      -- you changed them in the UI, not on the next start.
+      pcall(function() require("freebuff.settings.apply").all() end)
+
       local ok, data = pcall(require, "freebuff.settings.data")
       if ok then
         data.record_activity()

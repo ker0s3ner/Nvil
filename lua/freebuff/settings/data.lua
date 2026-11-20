@@ -99,6 +99,31 @@ local defaults = {
     last_read_section = "",
     show_welcome = true,
   },
+
+  -- ── Packs (one active choice per category; see freebuff/settings/packs.lua)
+  packs = {
+    color = "crimson",       -- freebuff/theme.lua
+    font = "jetbrains",      -- guifont (Neovide) + install hint for terminals
+    keybinds = "default",    -- default | vscode | helix-lite | emacs-lite
+    music = "lofi",          -- Strudel starter pack
+    editor = "default",      -- default | compact | spacious | writer
+    kernel = "python3",      -- default Jupyter kernel for Molten
+    kernels = {},            -- kernels the user marked as wanted
+    network = "ios",         -- cisco / network tools preset
+    leetcode_lang = "python3",
+  },
+
+  -- ── Tool toggles ────────────────────────────────────────────────
+  tools = {
+    leetcode = true,
+    strudel = true,
+    jupyter = true,
+    latex_live = true,
+    manim_live = true,
+    mindmap = true,
+    network = true,
+    autocompile_delay = 600, -- ms debounce for live LaTeX/Typst/Manim
+  },
 }
 
 --- Merge user settings with defaults (shallow per section)
@@ -126,7 +151,19 @@ function M.read()
   if not content or content == "" then return M.load() end
   local ok, data = pcall(vim.json.decode, content)
   if not ok then return M.load() end
-  return M.load(data)
+  local result = M.load(data)
+
+  -- Migrate the original blue dashboard defaults to the new black/red UI.
+  -- This also repairs the old saved line-number state once, without making
+  -- the user manually edit JSON or restart to see the setting.
+  if result.appearance.colorscheme == "tokyonight-storm" then
+    result.appearance.colorscheme = "tokyonight-night"
+    result.appearance.show_line_numbers = true
+    result.appearance.show_relative_line_numbers = true
+    M.write(result)
+  end
+
+  return result
 end
 
 --- Write settings to disk
