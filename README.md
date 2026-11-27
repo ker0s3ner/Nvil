@@ -23,6 +23,7 @@ lua/plugins/
   ai.lua                Avante — the Cursor-style AI sidebar, wired to local Gemma 4
   image.lua             inline image rendering (Kitty graphics protocol)
   browser.lua           real markdown preview + "open in actual browser" keymaps
+  tools/network.lua     Cisco-style labs, device access, subnet and interface helpers
   which-key.lua         live keybind reference popup
 ```
 
@@ -80,7 +81,17 @@ this list will drift out of date, that popup won't.
 | `<leader>mp` | Toggle markdown preview (real browser) |
 | `<leader>bl` | Open localhost:PORT in browser |
 | `gx` | Open URL under cursor in browser |
+| `<leader>NL` | Open a Cisco-style training lab |
+| `<leader>G` | Start a Gamma-ready startup artifact |
 | `<leader>uc` | Live-switch colorscheme |
+
+## Startup workflow
+
+Neovim is the official IDE and source of truth. Use `:NetLab vlan` (or
+`<leader>NL`) for a guided Cisco-style practice lab with goals and verification
+commands. Use `<leader>G` for a version-controlled Markdown brief for a pitch
+deck, strategy memo, or launch webpage; preview it with `<leader>mp`, then
+import the finished brief into Gamma for visual layout and sharing.
 
 ## What's real vs. adjusted from your original ask
 

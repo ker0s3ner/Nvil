@@ -41,6 +41,10 @@ return {
       { "<leader>Nn", function()
           vim.ui.input({ prompt = "Subnet (ip/prefix): " }, function(v) if v and v ~= "" then vim.cmd("NetSubnet " .. v) end end)
         end, desc = "Subnet calculator" },
+      { "<leader>NL", function()
+          vim.ui.input({ prompt = "Lab (vlan/routing/ospf/troubleshoot): " }, function(v) if v and v ~= "" then vim.cmd("NetLab " .. v) end end)
+        end, desc = "Training lab" },
+      { "<leader>G", function() require("tools").gamma_new() end, desc = "Gamma startup artifact" },
     },
     config = function()
       require("tools.render").setup()
@@ -166,6 +170,7 @@ return {
         { "<leader>J", group = "jupyter", icon = "" },
         { "<leader>R", group = "render (tex/manim)", icon = "󰐱" },
         { "<leader>N", group = "network (cisco)", icon = "󰛳" },
+        { "<leader>G", group = "Gamma startup artifacts", icon = "" },
         { "<leader>O", group = "notes / mind map", icon = "󱓧" },
       },
     },

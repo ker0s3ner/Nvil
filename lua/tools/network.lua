@@ -10,6 +10,29 @@
 
 local M = {}
 
+local labs = {
+  vlan = {
+    title = "VLAN segmentation lab",
+    goals = { "Create access and trunk VLANs", "Verify native/allowed VLAN behavior", "Document the smallest safe segmentation for the product" },
+    checks = { "show vlan brief", "show interfaces trunk", "show mac address-table", "ping between permitted endpoints" },
+  },
+  routing = {
+    title = "Routing and reachability lab",
+    goals = { "Define the startup network boundary", "Verify default and internal routes", "Record a repeatable incident check" },
+    checks = { "show ip route", "show ip interface brief", "ping the default gateway", "traceroute a service endpoint" },
+  },
+  ospf = {
+    title = "OSPF convergence lab",
+    goals = { "Advertise only required networks", "Verify neighbor state", "Test a controlled link failure" },
+    checks = { "show ip ospf neighbor", "show ip ospf interface brief", "show ip route ospf", "restore the link and verify convergence" },
+  },
+  troubleshoot = {
+    title = "Troubleshooting playbook lab",
+    goals = { "Start at the physical layer", "Narrow the fault with evidence", "Capture the fix for the team" },
+    checks = { "show interfaces status", "show logging", "show cdp neighbors detail", "retest from the affected client" },
+  },
+}
+
 local function term(cmd, title)
   vim.cmd("botright 14split")
   vim.cmd("terminal " .. cmd)
@@ -65,6 +88,25 @@ end
 function M.trace(host)
   local function go(h) if h and h ~= "" then term("traceroute " .. vim.fn.shellescape(h), "trace") end end
   if host and host ~= "" then go(host) else vim.ui.input({ prompt = "Traceroute: " }, go) end
+end
+
+function M.lab(kind)
+  local lab = labs[kind]
+  if not lab then
+    return vim.notify("Usage: :NetLab vlan|routing|ospf|troubleshoot", vim.log.levels.WARN, { title = "Network trainer" })
+  end
+  local lines = { "# " .. lab.title, "", "Startup network trainer", "", "## Learning goals" }
+  for _, item in ipairs(lab.goals) do lines[#lines + 1] = "- [ ] " .. item end
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "## Verification checklist"
+  for _, item in ipairs(lab.checks) do lines[#lines + 1] = "- [ ] `" .. item .. "`" end
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "## Evidence / notes"
+  lines[#lines + 1] = "\n## Decision"
+  vim.cmd("enew")
+  vim.bo.buftype, vim.bo.bufhidden, vim.bo.filetype = "", "", "markdown"
+  vim.api.nvim_buf_set_name(0, "network-lab-" .. kind .. ".md")
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
 end
 
 -- ── Subnet calculator (IPv4) ────────────────────────────────────────────────
@@ -155,6 +197,7 @@ function M.setup()
   cmd("NetSsh", M.connect, { desc = "SSH / telnet to a device" })
   cmd("NetPing", function(o) M.ping(o.args) end, { nargs = "?" })
   cmd("NetTrace", function(o) M.trace(o.args) end, { nargs = "?" })
+  cmd("NetLab", function(o) M.lab(o.args) end, { nargs = 1, complete = function() return vim.tbl_keys(labs) end, desc = "Open a Cisco-style training lab" })
   cmd("NetSubnet", function(o) M.subnet(o.args) end, { nargs = 1, desc = "IPv4 subnet calculator" })
   cmd("NetInterfaces", function() M.interfaces() end, { desc = "Interface table from IOS config" })
 
